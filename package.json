@@ -1,0 +1,13 @@
+{
+  "name": "wizards-chess-3d",
+  "version": "1.0.0",
+  "description": "3D Wizard's Chess in a gothic cathedral. Static site, no build needed to run.",
+  "private": true,
+  "scripts": {
+    "build:css": "tailwindcss -i src/input.css -o css/tailwind.css --minify",
+    "serve": "python3 -m http.server 8080"
+  },
+  "devDependencies": {
+    "tailwindcss": "3.4.19"
+  }
+}

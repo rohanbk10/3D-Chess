@@ -11,16 +11,22 @@ let camSpherical = { ...CAMERA_PRESETS.white };
 let targetSpherical = { ...CAMERA_PRESETS.white };
 let autoOrbit = false;
 
-function setCameraPreset(preset) {
+function markCameraChip(preset) {
   ['white', 'black', 'top', 'orbit'].forEach(id => {
     const btn = document.getElementById('cam-' + id);
     btn.classList.toggle('m3-chip-active', id === preset);
     btn.setAttribute('aria-pressed', id === preset);
   });
+}
+
+function setCameraPreset(preset) {
+  markCameraChip(preset);
 
   autoOrbit = preset === 'orbit';
   if (CAMERA_PRESETS[preset]) {
     targetSpherical = { ...CAMERA_PRESETS[preset] };
+    // In Pass & Play the top-down view also faces the side that is about to move.
+    if (preset === 'top' && settings.mode === 'pass' && game.turn() === 'b') targetSpherical.theta = Math.PI;
     // take the shortest way round when swinging between Marble and Obsidian
     const turns = Math.round((camSpherical.theta - targetSpherical.theta) / (Math.PI * 2));
     targetSpherical.theta += turns * Math.PI * 2;
@@ -28,6 +34,24 @@ function setCameraPreset(preset) {
     targetSpherical.phi = 0.85;
     targetSpherical.radius = 18.2;
   }
+}
+
+// Pass & Play: swing the camera round to whoever is about to move (keeping the
+// current tilt and zoom). In vs AI mode the player is always Marble, so the
+// camera only returns to the Marble side when switching into that mode.
+let cameraFollowKey = '';
+function followTurnCamera() {
+  const key = settings.mode === 'pass' ? `pass:${game.turn()}:${game.history().length}` : 'ai';
+  if (key === cameraFollowKey) return;
+  cameraFollowKey = key;
+  if (autoOrbit) return;
+
+  const faceBlack = settings.mode === 'pass' && game.turn() === 'b';
+  const base = faceBlack ? Math.PI : 0;
+  // choose the equivalent angle closest to where the camera is now (shortest swing)
+  const turns = Math.round((targetSpherical.theta - base) / (Math.PI * 2));
+  targetSpherical.theta = base + turns * Math.PI * 2;
+  markCameraChip(targetSpherical.phi < 0.4 ? 'top' : (faceBlack ? 'black' : 'white'));
 }
 
 function clampRadius(r) {

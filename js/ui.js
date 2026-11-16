@@ -132,4 +132,5 @@ function updateHUD() {
   }
 
   refreshHighlights();
+  followTurnCamera();
 }

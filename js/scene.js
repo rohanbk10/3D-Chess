@@ -281,7 +281,7 @@ function squareToWorld(sq) {
 function buildChessBoard() {
   // Heavy Carved Obsidian-Marble Frame
   const frame = new THREE.Mesh(
-    new THREE.BoxGeometry(BOARD_SIZE * TILE_SIZE + 1.1, 0.42, BOARD_SIZE * TILE_SIZE + 1.1),
+    new THREE.BoxGeometry(BOARD_SIZE * TILE_SIZE + 1.8, 0.42, BOARD_SIZE * TILE_SIZE + 1.8),
     darkRibMat
   );
   frame.position.y = -0.22;
@@ -289,25 +289,29 @@ function buildChessBoard() {
   frame.castShadow = true;
   boardGroup.add(frame);
 
-  // Glowing inlaid metallic rim
-  const rim = new THREE.Mesh(
-    new THREE.BoxGeometry(BOARD_SIZE * TILE_SIZE + 0.3, 0.45, BOARD_SIZE * TILE_SIZE + 0.3),
-    new THREE.MeshStandardMaterial({ color: 0x7a62b8, roughness: 0.3, metalness: 0.8 })
-  );
-  rim.position.y = -0.21;
-  boardGroup.add(rim);
+  // Raised metallic border around the squares (four bars, so the squares stay visible)
+  const rimMat = new THREE.MeshStandardMaterial({ color: 0x9b82d8, roughness: 0.3, metalness: 0.8 });
+  const side = BOARD_SIZE * TILE_SIZE;
+  const bar = 0.14;
+  [[0, side / 2 + bar / 2, side + bar * 2, bar], [0, -(side / 2 + bar / 2), side + bar * 2, bar],
+   [side / 2 + bar / 2, 0, bar, side], [-(side / 2 + bar / 2), 0, bar, side]].forEach(([x, z, w, d]) => {
+    const piece = new THREE.Mesh(new THREE.BoxGeometry(w, 0.1, d), rimMat);
+    piece.position.set(x, 0.0, z);
+    piece.castShadow = true;
+    boardGroup.add(piece);
+  });
 
   const lightSquareMat = new THREE.MeshPhysicalMaterial({
-    color: 0xe8e4dc,
-    roughness: 0.2,
-    metalness: 0.05,
-    clearcoat: 0.6
+    color: 0xf2ead9,
+    roughness: 0.55,
+    metalness: 0,
+    clearcoat: 0.1
   });
   const darkSquareMat = new THREE.MeshPhysicalMaterial({
-    color: 0x262332,
-    roughness: 0.22,
-    metalness: 0.25,
-    clearcoat: 0.6
+    color: 0x0d0b14,
+    roughness: 0.4,
+    metalness: 0.1,
+    clearcoat: 0.2
   });
 
   const tileGeo = new THREE.BoxGeometry(TILE_SIZE * 0.98, 0.18, TILE_SIZE * 0.98);
@@ -382,30 +386,42 @@ function buildBoardLabels() {
     const c = document.createElement('canvas');
     c.width = c.height = 128;
     const g = c.getContext('2d');
-    g.fillStyle = '#d0bcff';
-    g.font = 'bold 84px Cinzel, Georgia, serif';
+    g.font = 'bold 92px Cinzel, Georgia, serif';
     g.textAlign = 'center';
     g.textBaseline = 'middle';
+    g.lineWidth = 8;
+    g.strokeStyle = '#000';
+    g.strokeText(text, 64, 68);
+    g.fillStyle = '#f0d27a';
     g.fillText(text, 64, 68);
     const tex = new THREE.CanvasTexture(c);
+    tex.anisotropy = 4;
     const mesh = new THREE.Mesh(
-      new THREE.PlaneGeometry(0.38, 0.38),
-      new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false, opacity: 0.85 })
+      new THREE.PlaneGeometry(0.62, 0.62),
+      new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false })
     );
     mesh.rotation.x = -Math.PI / 2;
     return mesh;
   };
-  const edge = (BOARD_SIZE * TILE_SIZE) / 2 + 0.3;
+  // Labels on all four sides of the frame; the far sides are flipped so they
+  // read upright from the Obsidian camera too.
+  const edge = (BOARD_SIZE * TILE_SIZE) / 2 + 0.52;
   for (let i = 0; i < 8; i++) {
-    const file = makeLabel('abcdefgh'[i]);
+    const fileCh = 'abcdefgh'[i].toUpperCase();
     const fp = squareToWorld('abcdefgh'[i] + '1');
-    file.position.set(fp.x, 0.012, edge);
-    boardGroup.add(file);
-
-    const rank = makeLabel(String(i + 1));
     const rp = squareToWorld('a' + (i + 1));
-    rank.position.set(-edge, 0.012, rp.z);
-    boardGroup.add(rank);
+    [[fp.x, edge, 0], [fp.x, -edge, Math.PI]].forEach(([x, z, rot]) => {
+      const m = makeLabel(fileCh);
+      m.position.set(x, 0.012, z);
+      m.rotation.z = rot;
+      boardGroup.add(m);
+    });
+    [[-edge, rp.z, 0], [edge, rp.z, Math.PI]].forEach(([x, z, rot]) => {
+      const m = makeLabel(String(i + 1));
+      m.position.set(x, 0.012, z);
+      m.rotation.z = rot;
+      boardGroup.add(m);
+    });
   }
 }
 buildBoardLabels();

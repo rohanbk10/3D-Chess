@@ -3,6 +3,16 @@
  *************************************************************************/
 const clock = new THREE.Clock();
 
+// Screen shake on captures: bigger pieces shake the camera harder.
+const SHAKE_BY_PIECE = { p: 0.04, n: 0.08, b: 0.08, r: 0.13, q: 0.22, k: 0.22 };
+const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+let shakeAmp = 0;
+
+function triggerShake(pieceType) {
+  if (reduceMotion) return;
+  shakeAmp = Math.max(shakeAmp, SHAKE_BY_PIECE[pieceType] || 0.04);
+}
+
 function animate() {
   requestAnimationFrame(animate);
   const dt = Math.min(clock.getDelta(), 0.1);
@@ -19,6 +29,14 @@ function animate() {
   camera.position.x = camSpherical.radius * Math.sin(camSpherical.phi) * Math.sin(camSpherical.theta);
   camera.position.y = camSpherical.radius * Math.cos(camSpherical.phi);
   camera.position.z = camSpherical.radius * Math.sin(camSpherical.phi) * Math.cos(camSpherical.theta);
+  if (shakeAmp > 0.002) {
+    camera.position.x += (Math.random() - 0.5) * 2 * shakeAmp;
+    camera.position.y += (Math.random() - 0.5) * 2 * shakeAmp;
+    camera.position.z += (Math.random() - 0.5) * 2 * shakeAmp;
+    shakeAmp *= Math.pow(0.002, dt / 0.45); // fades out in roughly half a second
+  } else {
+    shakeAmp = 0;
+  }
   camera.lookAt(0, 0.5, 0);
 
   // 2. Cathedral Floating Sconce Orbs
@@ -85,6 +103,7 @@ function animate() {
         if (!anim.shattered) {
           anim.shattered = true;
           playSound('shatter');
+          if (anim.capturedPieceRoot) triggerShake(anim.capturedPieceRoot.userData.type);
           if (anim.capturedPieceRoot) {
             spawnShatterExplosion(
               anim.capturedPieceRoot.position,

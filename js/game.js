@@ -300,7 +300,11 @@ function getGameResult() {
 function checkGameEndOrTriggerAI() {
   const result = getGameResult();
   if (result) {
-    playSound(result.winner ? 'check' : 'select');
+    // vs AI: fanfare when Marble (the player) wins, sad tune when Obsidian wins.
+    // Pass & Play has no "us", so any checkmate gets the fanfare.
+    if (!result.winner) playSound('select');
+    else if (settings.mode === 'ai') playSound(result.winner === 'w' ? 'victory' : 'defeat');
+    else playSound('victory');
     showBattleBanner(`${result.title} — ${result.detail}`, result.icon, true);
     gameOverShownAt = game.history().length;
     setTimeout(() => {
